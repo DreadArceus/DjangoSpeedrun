@@ -3,7 +3,7 @@ import random
 from django.http.response import JsonResponse
 
 config = {
-    "apiKey": "AIzaSyDHL7uPqv0P0Y_WVxcID7_FJhx6c-IO0y4",
+    "apiKey": "",
     "authDomain": "tambola-3402f.firebaseapp.com",
     "databaseURL": "https://tambola-3402f-default-rtdb.firebaseio.com",
     "storageBucket": "tambola-3402f.appspot.com",
