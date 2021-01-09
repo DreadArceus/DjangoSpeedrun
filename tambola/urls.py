@@ -1,12 +1,13 @@
 from django.urls import include, path
-from rest_framework import routers, urlpatterns
 from tambola.draft_api import views
 
-router = routers.DefaultRouter()
-router.register(r'users', views.UserViewSet)
-router.register(r'groups', views.GroupViewSet)
-
 urlpatterns = [
-    path('', include(router.urls)), 
-    path('api-auth/', include('rest_framework.urls', namespace='rest_framework'))
+    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+    path('count', views.start),
+    path('claim/<ticket_state>/<key>', views.processClaim),
+    path('results', views.finish),
+    path('new/<key>/<discord>', views.generateTicket),
+    path('ticket/<key>', views.getTicket),
+    path('calls', views.listCalls),
+    path('numcall/<num>', views.processNumCall)
 ]
