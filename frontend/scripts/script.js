@@ -44,7 +44,7 @@ document.getElementById("claim-btn").addEventListener("click", () => {
       ticket_state += "0";
     }
   }
-  fetch(`http://127.0.0.1:8000/claim/${ticket_state}/${key}`)
+  fetch(`http://127.0.0.1:8000/claim/${ticket_state}/${key}`, {method: 'PUT'})
   .then((response) => {
     return response.json();
   })

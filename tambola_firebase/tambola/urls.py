@@ -1,5 +1,5 @@
 from django.urls import include, path
-from tambola.draft_api import views
+from tambola_firebase.tambola.draft_api import views
 
 urlpatterns = [
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
