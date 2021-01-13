@@ -67,62 +67,62 @@ def processClaim(request, ticket_state, key, game_id=1):
     calls = [call['value'] for call in calls_serializer.data]
 
     # first 5 check
-    if not verdicts[converter['first 5']]:
+    if verdicts[converter['first 5']][1] == 'NONE':
         nums = []
         for x in range(9):
             for y in range(3):
-                if ticket[x][y] != 'X' and ticket_state[x + y * 9] == '1' and calls.count(ticket[x][y]) == 1:
-                    nums.append(ticket[x][y])
+                if ticket[x][y] != 'X' and ticket_state[x + y * 9] == '1' and calls.count(int(ticket[x][y])) == 1:
+                    nums.append(int(ticket[x][y]))
         if len(nums) >= 5:
-            verdicts[converter['first 5']] = auth_id
+            verdicts[converter['first 5']][1] = auth_id
             print(f'{auth_id} wins first five')
     # row checks
     for i in range(3):
-        if not verdicts[converter[f'row {i + 1}']]:
+        if verdicts[converter[f'row {i + 1}']][1] == 'NONE':
             win = True
             row_nums = []
             for x in range(9):
                 if ticket[x][i] != 'X':
-                    row_nums.append(ticket[x][i])
+                    row_nums.append(int(ticket[x][i]))
                 if ticket[x][i] != 'X' and ticket_state[x + i * 9] != '1':
                     win = False
                     break
             if win:
                 if set(row_nums).issubset(set(calls)):
-                    verdicts[converter[f'row {i + 1}']] = auth_id
+                    verdicts[converter[f'row {i + 1}']][1] = auth_id
                     print(f'{auth_id} wins row {i + 1}')
                     # win confirmed
     # house or 3x3 checks
     for i in range(3):
-        if not verdicts[converter[f'house {i+1}']]:
+        if verdicts[converter[f'house {i+1}']][1] == 'NONE':
             win = True
             house_nums = []
             for x in range(3):
                 for y in range(3):
                     if ticket[x + i * 3][y] != 'X':
-                        house_nums.append(ticket[x + i * 3][y])
+                        house_nums.append(int(ticket[x + i * 3][y]))
                     if ticket[x + i * 3][y] != 'X' and ticket_state[x + i * 3 + y * 9] != '1':
                         win = False
                         break
             if win:
                 if set(house_nums).issubset(set(calls)):
-                    verdicts[converter[f'house {i+1}']] = auth_id
+                    verdicts[converter[f'house {i+1}']][1] = auth_id
                     print(f'{auth_id} wins house {i + 1}')
                     # win confirmed
     # full house check
-    if not verdicts[converter['full house']]:
+    if verdicts[converter['full house']][1] == 'NONE':
         nums = []
         win = True
         for x in range(9):
             for y in range(3):
                 if ticket[x][y] != 'X':
-                    nums.append(ticket[x][y])
+                    nums.append(int(ticket[x][y]))
                 if ticket[x][y] != 'X' and ticket_state[x + y * 9] != '1':
                     win = False
                     break
         if win:
             if set(nums).issubset(set(calls)):
-                verdicts[converter['full house']] = auth_id
+                verdicts[converter['full house']][1] = auth_id
                 print(f'{auth_id} wins full house')
                 # win confirmed
     result_serializer = ResultSerializer(
