@@ -2,11 +2,12 @@ const fetch = require("node-fetch");
 const Discord = require("discord.js");
 
 const execute = async function (msg, args) {
+  const game_id = Math.floor(msg.channel.id / Math.pow(2, 30));
   var key = "";
   for(var i = 0; i < 13; i++){
     key += String.fromCharCode(Math.floor(Math.random() * 26 + 65))
   }
-    await fetch(`http://127.0.0.1:8000/new/${key}/${msg.author.id}`)
+    await fetch(`https://tambola-django.herokuapp.com/ticket/${game_id}/${key}/${msg.author.id}`, {method: 'POST'})
     .then((response) => {
       return response.json();
     })
@@ -17,7 +18,7 @@ const execute = async function (msg, args) {
     .catch((err) => {
       console.log("fk");
     });
-  msg.author.send(`Your secret key is ${key}, enter this in https://www.someshit.com/ to enter the game`);
+  msg.author.send(`Open https://dreadarceus.github.io/Tambola_FrontEnd?game_id=${game_id}&key=${key} to enter the game`);
 };
 
 module.exports = {

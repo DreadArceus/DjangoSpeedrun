@@ -1,23 +1,23 @@
 from rest_framework import serializers
-from .models import Ticket, Call, Secret, Result
+from .models import GameTickets, GameCalls, GameSecrets, Result
 
 
-class TicketSerializer(serializers.ModelSerializer):
+class GameTicketsSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Ticket
-        fields = ['id', 'key', 'grid']
+        model = GameTickets
+        fields = ['game_id', 'tickets']
 
 
-class CallSerializer(serializers.ModelSerializer):
+class GameCallsSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Call
-        fields = ['id', 'value']
+        model = GameCalls
+        fields = ['game_id', 'calls']
 
 
-class SecretSerializer(serializers.ModelSerializer):
+class GameSecretsSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Secret
-        fields = ['id', 'key', 'discord_id']
+        model = GameSecrets
+        fields = ['game_id', 'secrets']
 
 
 class ResultSerializer(serializers.ModelSerializer):

@@ -9,6 +9,7 @@ h1 {
   display: block;
   margin: auto;
   width: fit-content;
+  width: -moz-max-content;
 }
 .cell {
   width: 50px;
@@ -19,6 +20,7 @@ h1 {
 }
 #claim{
   width: fit-content;
+  width: -moz-max-content;
   display: block;
   margin: auto;
   margin-top: 50px;

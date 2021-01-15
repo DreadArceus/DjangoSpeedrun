@@ -1,8 +1,9 @@
 const Discord = require("discord.js");
 const call = require("./call.js");
 const start = require("./start.js");
-const finish = require("./finish.js");
+const result = require("./result.js");
 const register = require("./register.js");
+const del = require("./del.js");
 
 const execute = async function (msg, args) {
   if (!args.length) {
@@ -26,7 +27,8 @@ const commands = {
   register,
   start,
   call,
-  finish,
+  result,
+  del,
   help,
 };
 

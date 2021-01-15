@@ -2,7 +2,8 @@ const fetch = require("node-fetch");
 const Discord = require("discord.js");
 
 const execute = async function (msg, args) {
-  await fetch(`http://127.0.0.1:8000/count`)
+  const game_id = Math.floor(msg.channel.id / Math.pow(2, 30));
+  await fetch(`https://tambola-django.herokuapp.com/init/${game_id}`)
     .then((response) => {
       return response.json();
     })
@@ -11,7 +12,7 @@ const execute = async function (msg, args) {
       msg.channel.send(
         `${
           data.Started ? "Game in progress" : "Game has not begun"
-        }\nCurrently registered: ${data.Registered}`
+        }\nCurrently registered: ${data.Registered} (Use $register)`
       );
     })
     .catch((err) => {

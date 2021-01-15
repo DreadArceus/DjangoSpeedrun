@@ -1,28 +1,29 @@
+from datetime import time
 import random
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.http.response import JsonResponse
-# from rest_framework.parsers import JSONParser
 from rest_framework import status
 
-from .models import Ticket, Call, Secret, Result
-from .serializers import TicketSerializer, CallSerializer, SecretSerializer, ResultSerializer
+from .models import GameTickets, GameCalls, GameSecrets, Result
+from .serializers import GameTicketsSerializer, GameCallsSerializer, GameSecretsSerializer, ResultSerializer
 from rest_framework.decorators import api_view
 
 
 @api_view(['DELETE'])
-def deleteAll(request, game_id=1):
-    Ticket.objects.all().delete()
-    Call.objects.all().delete()
-    Secret.objects.all().delete()
-    Result.objects.get(game_id=game_id).delete()
+def delete(request, game_id):
+    try:
+        Result.objects.get(game_id=game_id).delete()
+        GameTickets.objects.get(game_id=game_id).delete()
+        GameSecrets.objects.get(game_id=game_id).delete()
+        GameCalls.objects.get(game_id=game_id).delete()
+    except:
+        return JsonResponse({'message': 'incomplete wipe'}, status=status.HTTP_404_NOT_FOUND)
     return JsonResponse({'message': 'wiped'}, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])
-def initialise_game(request, game_id=1):
-    tickets = Ticket.objects.all()
-    ticket_amt = len(tickets)
-    call_made = len(Call.objects.all()) != 0
+def initialise_game(request, game_id):
     try:
         Result.objects.get(game_id=game_id)
     except:
@@ -40,31 +41,68 @@ def initialise_game(request, game_id=1):
         result_serializer = ResultSerializer(data=result_data)
         if result_serializer.is_valid():
             result_serializer.save()
-        else:
-            return JsonResponse(result_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        g_tickets = GameTickets.objects.get(game_id=game_id)
+        g_tickets_serializer = GameTicketsSerializer(g_tickets)
+        ticket_amt = len(g_tickets_serializer.data['tickets'])
+    except:
+        ticket_amt = 0
+    try:
+        GameCalls.objects.get(game_id=game_id)
+        call_made = True
+    except:
+        call_made = False
     return JsonResponse({"Registered": ticket_amt, "Started": call_made}, status=status.HTTP_200_OK)
 
 
 @api_view(['PUT'])
-def processClaim(request, ticket_state, key, game_id=1):
+def processClaim(request, ticket_state, key, game_id):
     # ticket_state is a binary string
     #   representing if a number is crossed out or not
+    try:
+        Result.objects.get(game_id=game_id)
+    except:
+        result_data = {
+            'game_id': game_id,
+            'winners': [['first 5', 'NONE'],
+                        ['row 1', 'NONE'],
+                        ['row 2', 'NONE'],
+                        ['row 3', 'NONE'],
+                        ['house 1', 'NONE'],
+                        ['house 2', 'NONE'],
+                        ['house 3', 'NONE'],
+                        ['full house', 'NONE']]
+        }
+        result_serializer = ResultSerializer(data=result_data)
+        if result_serializer.is_valid():
+            result_serializer.save()
     result = Result.objects.get(game_id=game_id)
     result_serializer = ResultSerializer(result)
     verdicts = result_serializer.data['winners']
     converter = {verdict[0]: index for index, verdict in enumerate(verdicts)}
 
-    secret = Secret.objects.get(key=key)
-    secret_serializer = SecretSerializer(secret)
-    auth_id = secret_serializer.data['discord_id']
+    g_secrets = GameSecrets.objects.get(game_id=game_id)
+    g_secrets_serializer = GameSecretsSerializer(g_secrets)
+    secrets = g_secrets_serializer.data['secrets']
+    ticket_id = -1
+    auth_id = -1
+    for secret in secrets:
+        if secret['key'] == key:
+            auth_id = secret['discord_id']
+            ticket_id = secret['ticket_id']
+            break
 
-    ticket_obj = Ticket.objects.get(key=key)
-    ticket_serializer = TicketSerializer(ticket_obj)
-    ticket = ticket_serializer.data["grid"]
+    g_tickets = GameTickets.objects.get(game_id=game_id)
+    g_tickets_serializer = GameTicketsSerializer(g_tickets)
+    tickets = g_tickets_serializer.data['tickets']
+    ticket = tickets[ticket_id]
 
-    calls_obj = Call.objects.all()
-    calls_serializer = CallSerializer(calls_obj, many=True)
-    calls = [call['value'] for call in calls_serializer.data]
+    try:
+        g_calls = GameCalls.objects.get(game_id=game_id)
+        g_calls_serializer = GameCallsSerializer(g_calls)
+        calls = g_calls_serializer.data['calls']
+    except:
+        calls = []
 
     # first 5 check
     if verdicts[converter['first 5']][1] == 'NONE':
@@ -136,14 +174,17 @@ def processClaim(request, ticket_state, key, game_id=1):
 
 
 @ api_view(['GET'])
-def result_report(request, game_id=1):
-    result = Result.objects.get(game_id=game_id)
+def result_report(request, game_id):
+    try:
+        result = Result.objects.get(game_id=game_id)
+    except:
+        return JsonResponse({'message': 'game_id not found'}, status=status.HTTP_404_NOT_FOUND)
     result_serializer = ResultSerializer(result)
     return JsonResponse(result_serializer.data, status=status.HTTP_200_OK)
 
 
 @ api_view(['GET', 'POST'])
-def ticket_list(request, key, discord=0):
+def ticket_list(request, game_id, key, discord=0):
     if request.method == 'POST':
         if discord == 0:
             return JsonResponse({'message': 'discord id incorrect'}, status=status.HTTP_400_BAD_REQUEST)
@@ -167,40 +208,80 @@ def ticket_list(request, key, discord=0):
                 rnd_y = random.randint(0, 2)
             grid[rnd_a][rnd_y] = 'X'
 
-        ticket_data = {'key': key, 'grid':  grid}
-        ticket_serializer = TicketSerializer(data=ticket_data)
-        secret_data = {'key': key, 'discord_id': discord}
-        secret_serializer = SecretSerializer(data=secret_data)
-        if secret_serializer.is_valid():
-            secret_serializer.save()
+        try:
+            g_tickets = GameTickets.objects.get(game_id=game_id)
+            g_tickets_serializer = GameTicketsSerializer(g_tickets)
+            new_tickets = g_tickets_serializer.data['tickets']
+            new_tickets.append(grid)
+            g_tickets_serializer = GameTicketsSerializer(
+                g_tickets, data={'game_id': game_id, 'tickets': new_tickets})
+        except ObjectDoesNotExist:
+            g_tickets_serializer = GameTicketsSerializer(
+                data={'game_id': game_id, 'tickets': [grid]})
+        if g_tickets_serializer.is_valid():
+            g_tickets_serializer.save()
         else:
-            return JsonResponse(secret_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        if ticket_serializer.is_valid():
-            ticket_serializer.save()
-            return JsonResponse(ticket_serializer.data, status=status.HTTP_201_CREATED)
-        secret = Secret.objects.get(key=key)
-        secret.delete()
-        return JsonResponse(ticket_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse(g_tickets_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        secret = {'key': key, 'discord_id': discord, 'ticket_id': len(
+            g_tickets_serializer.data['tickets']) - 1}
+        try:
+            g_secrets = GameSecrets.objects.get(game_id=game_id)
+            g_secrets_serializer = GameSecretsSerializer(g_secrets)
+            new_secrets = g_secrets_serializer.data['secrets']
+            new_secrets.append(secret)
+            g_secrets_serializer = GameSecretsSerializer(
+                g_secrets, data={'game_id': game_id, 'secrets': new_secrets})
+        except ObjectDoesNotExist:
+            g_secrets_serializer = GameSecretsSerializer(
+                data={'game_id': game_id, 'secrets': [secret]})
+        if g_secrets_serializer.is_valid():
+            g_secrets_serializer.save()
+        else:
+            return JsonResponse(g_secrets_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse(secret, safe=False, status=status.HTTP_201_CREATED)
     elif request.method == 'GET':
-        ticket = Ticket.objects.get(key=key)
-        ticket_serializer = TicketSerializer(ticket)
-        return JsonResponse(ticket_serializer.data, status=status.HTTP_200_OK)
+        g_secrets = GameSecrets.objects.get(game_id=game_id)
+        g_secrets_serializer = GameSecretsSerializer(g_secrets)
+        secrets = g_secrets_serializer.data['secrets']
+        ticket_id = -1
+        for secret in secrets:
+            if secret['key'] == key:
+                ticket_id = secret['ticket_id']
+                break
+        if ticket_id == -1:
+            return JsonResponse({'message': 'ticket not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        g_tickets = GameTickets.objects.get(game_id=game_id)
+        g_tickets_serializer = GameTicketsSerializer(g_tickets)
+        tickets = g_tickets_serializer.data['tickets']
+        return JsonResponse({'grid': tickets[ticket_id]}, status=status.HTTP_200_OK)
 
 
 @ api_view(['GET', 'POST'])
-def calls_list(request, num=-1):
+def calls_list(request, game_id, num=-1):
     if request.method == 'GET':
-        calls = Call.objects.all()
-        if(calls == None):
-            return JsonResponse([], safe=False)
-        calls_serializer = CallSerializer(calls, many=True)
-        return JsonResponse([call['value'] for call in calls_serializer.data], safe=False, status=status.HTTP_200_OK)
+        try:
+            g_calls = GameCalls.objects.get(game_id=game_id)
+        except:
+            return JsonResponse([], safe=False, status=status.HTTP_200_OK)
+        g_calls_serializer = GameCallsSerializer(g_calls)
+        calls = g_calls_serializer.data['calls']
+        return JsonResponse(calls, safe=False, status=status.HTTP_200_OK)
     elif request.method == 'POST':
         if num == -1:
             return JsonResponse({'message': 'invalid call'}, status=status.HTTP_400_BAD_REQUEST)
-        call_data = {'value': num}
-        call_serializer = CallSerializer(data=call_data)
-        if call_serializer.is_valid():
-            call_serializer.save()
-            return JsonResponse(call_serializer.data, status=status.HTTP_201_CREATED)
-        return JsonResponse(call_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            g_calls = GameCalls.objects.get(game_id=game_id)
+            g_calls_serializer = GameCallsSerializer(g_calls)
+            new_calls = g_calls_serializer.data['calls']
+            new_calls.append(num)
+            g_calls_serializer = GameCallsSerializer(
+                g_calls, data={'game_id': game_id, 'calls': new_calls})
+        except ObjectDoesNotExist:
+            g_calls_serializer = GameCallsSerializer(
+                data={'game_id': game_id, 'calls': [num]})
+        if g_calls_serializer.is_valid():
+            g_calls_serializer.save()
+            return JsonResponse(g_calls_serializer.data['calls'], safe=False, status=status.HTTP_201_CREATED)
+        return JsonResponse(g_calls_serializer.errors, status=status.HTTP_400_BAD_REQUEST)

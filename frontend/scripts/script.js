@@ -1,10 +1,13 @@
 const heading = document.getElementById("heading");
 heading.textContent = "Wait up";
 const cells = document.getElementsByClassName("cell");
-const key = prompt("Enter key:");
+const url = window.location.search;
+const urlparams = new URLSearchParams(url);
+const game_id = urlparams.get("game_id");
+const key = urlparams.get("key");
 getTicket = async () => {
   var ticketData = [];
-  await fetch(`http://127.0.0.1:8000/ticket/${key}`)
+  await fetch(`http://127.0.0.1:8000/ticket/${game_id}/${key}`)
     .then((response) => {
       return response.json();
     })
@@ -44,14 +47,16 @@ document.getElementById("claim-btn").addEventListener("click", () => {
       ticket_state += "0";
     }
   }
-  fetch(`http://127.0.0.1:8000/claim/${ticket_state}/${key}`, {method: 'PUT'})
-  .then((response) => {
-    return response.json();
+  fetch(`http://127.0.0.1:8000/claim/${game_id}/${ticket_state}/${key}`, {
+    method: "PUT",
   })
-  .then((data) => {
-    console.log("Claim Successful");
-  })
-  .catch((err) => {
-    console.log("fk");
-  });
+    .then((response) => {
+      return response.json();
+    })
+    .then((data) => {
+      console.log("Claim Successful");
+    })
+    .catch((err) => {
+      console.log("fk");
+    });
 });

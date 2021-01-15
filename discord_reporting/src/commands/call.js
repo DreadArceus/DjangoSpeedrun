@@ -2,8 +2,9 @@ const fetch = require("node-fetch");
 const Discord = require("discord.js");
 
 const execute = async function (msg, args) {
+  const game_id = Math.floor(msg.channel.id / Math.pow(2, 30));
   var calls = [];
-  await fetch(`http://127.0.0.1:8000/calls`)
+  await fetch(`https://tambola-django.herokuapp.com/call/${game_id}`)
     .then((response) => {
       return response.json();
     })
@@ -20,12 +21,12 @@ const execute = async function (msg, args) {
   }
   const bag = [];
   for (var i = 1; i <= 90; i++) {
-    if (calls.findIndex((x) => x === `${i}`) === -1) {
+    if (calls.findIndex((x) => x === i) === -1) {
       bag.push(i);
     }
   }
   var num = bag[Math.floor(Math.random() * bag.length)];
-  await fetch(`http://127.0.0.1:8000/numcall/${num}`)
+  await fetch(`https://tambola-django.herokuapp.com/call/${game_id}/${num}`, {method: 'POST'})
     .then((response) => {
       comm = response.json();
       console.log(`Returning this: ${JSON.stringify(comm)}`);

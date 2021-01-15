@@ -1,7 +1,7 @@
 from django.contrib import admin
-from .models import Ticket, Call, Secret, Result
+from .models import GameTickets, GameCalls, GameSecrets, Result
 
-admin.site.register(Ticket)
-admin.site.register(Call)
-admin.site.register(Secret)
+admin.site.register(GameTickets)
+admin.site.register(GameCalls)
+admin.site.register(GameSecrets)
 admin.site.register(Result)
